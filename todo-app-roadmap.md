@@ -59,6 +59,24 @@ npm install -g pnpm
 pnpm create vite todo-app --template react-ts
 ```
 
+**初始化 Git 仓库并连接 GitHub：**
+
+脚手架生成后立刻做版本控制，避免后面写一堆代码才想起来提交。
+
+```bash
+# 1. 本地初始化（Vite 模板自带 .gitignore，直接用）
+git init
+git add -A
+git commit -m "chore: initial commit"
+
+# 2. 在 GitHub 上手动建一个空仓库（不要勾选 README/.gitignore，避免和本地冲突）
+
+# 3. 关联远程并推送
+git remote add origin https://github.com/<user>/todo-app.git
+git branch -M main                 # 把默认分支名改成 main
+git push -u origin main            # -u 让本地 main 跟踪 origin/main，之后直接 git push 即可
+```
+
 **你需要搞懂 Vite 的这些配置（`vite.config.ts`）：**
 
 - `proxy` 配置：开发时前端请求如何转发到后端（解决跨域）
