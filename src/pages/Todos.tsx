@@ -1,21 +1,30 @@
 import { useState, type FormEvent } from 'react'
-import { useTodos } from '../useTodos'
+import {
+  useAddTodo,
+  useDeleteTodo,
+  useToggleTodo,
+  useTodosQuery,
+} from '../hooks/useTodosQuery'
 
 type Props = {
   onLogout: () => void
 }
 
 function Todos({ onLogout }: Props) {
-  const { todos, addTodo, toggleTodo, deleteTodo } = useTodos()
+  const { data: todos, isPending, isError, error } = useTodosQuery()
+  const addMutation = useAddTodo()
+  const toggleMutation = useToggleTodo()
+  const deleteMutation = useDeleteTodo()
   const [input, setInput] = useState('')
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    addTodo(input)
-    setInput('')
+    const trimmed = input.trim()
+    if (!trimmed) return
+    addMutation.mutate(trimmed, {
+      onSuccess: () => setInput(''),
+    })
   }
-
-  const remaining = todos.filter((t) => !t.completed).length
 
   return (
     <main className="todo-app">
@@ -33,15 +42,27 @@ function Todos({ onLogout }: Props) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="要做点什么?"
           aria-label="新 todo 内容"
+          disabled={addMutation.isPending}
         />
-        <button type="submit" disabled={!input.trim()}>
-          添加
+        <button
+          type="submit"
+          disabled={!input.trim() || addMutation.isPending}
+        >
+          {addMutation.isPending ? '添加中…' : '添加'}
         </button>
       </form>
 
-      {todos.length === 0 ? (
+      {isPending && <p className="empty">加载中…</p>}
+
+      {isError && (
+        <p className="form-error">加载失败:{error.message}</p>
+      )}
+
+      {!isPending && !isError && todos.length === 0 && (
         <p className="empty">还没有任何任务,加一个吧。</p>
-      ) : (
+      )}
+
+      {!isPending && !isError && todos.length > 0 && (
         <>
           <ul className="todo-list">
             {todos.map((todo) => (
@@ -53,14 +74,19 @@ function Todos({ onLogout }: Props) {
                   <input
                     type="checkbox"
                     checked={todo.completed}
-                    onChange={() => toggleTodo(todo.id)}
+                    onChange={() =>
+                      toggleMutation.mutate({
+                        id: todo.id,
+                        completed: !todo.completed,
+                      })
+                    }
                   />
                   <span>{todo.text}</span>
                 </label>
                 <button
                   type="button"
                   className="delete"
-                  onClick={() => deleteTodo(todo.id)}
+                  onClick={() => deleteMutation.mutate(todo.id)}
                   aria-label={`删除 ${todo.text}`}
                 >
                   ×
@@ -68,7 +94,9 @@ function Todos({ onLogout }: Props) {
               </li>
             ))}
           </ul>
-          <p className="summary">剩余 {remaining} 项</p>
+          <p className="summary">
+            剩余 {todos.filter((t) => !t.completed).length} 项
+          </p>
         </>
       )}
     </main>
