@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Todos from './pages/Todos'
-import './App.css'
 
 type Page = 'login' | 'register' | 'todos'
 

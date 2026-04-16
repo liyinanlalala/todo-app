@@ -17,11 +17,19 @@ todo-app/
 │   ├── favicon.svg
 │   └── icons.svg
 └── src/                    # 前端源码
-    ├── main.tsx            # 应用入口，挂载 React 根组件
-    ├── App.tsx             # 根组件
-    ├── App.css             # 根组件样式
+    ├── main.tsx            # 应用入口，挂载 React 根组件 + QueryClientProvider
+    ├── App.tsx             # 根组件，手动管理页面切换（login/register/todos）
+    ├── App.css             # 组件样式（todo 列表、认证卡片）
     ├── index.css           # 全局样式（CSS 变量、暗色模式）
-    └── assets/             # 需要构建处理的静态资源（图片等）
+    ├── types.ts            # 共享类型定义（Todo）
+    ├── api/                # 数据访问层（当前为 localStorage 模拟）
+    │   └── todos.ts        # Todo CRUD 操作，模拟异步延迟
+    ├── hooks/              # 自定义 React Hooks
+    │   └── useTodosQuery.ts # React Query hooks（查询、添加、切换、删除）
+    └── pages/              # 页面组件
+        ├── Login.tsx       # 登录页（表单验证，认证逻辑待接入）
+        ├── Register.tsx    # 注册页（表单验证，认证逻辑待接入）
+        └── Todos.tsx       # Todo 列表页（增删改查）
 ```
 
 ## 约定
@@ -30,3 +38,6 @@ todo-app/
 - 静态资源分两类：`public/`（原样复制）和 `src/assets/`（经 Vite 处理）
 - 构建产物输出到 `dist/`（已在 `.gitignore` 中忽略）
 - 配置文件放在项目根目录
+- 数据访问逻辑放在 `src/api/`，React Query hooks 放在 `src/hooks/`
+- 页面级组件放在 `src/pages/`
+- 共享类型定义放在 `src/types.ts`
