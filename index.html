@@ -5,9 +5,37 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>todo-app</title>
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #6b7280;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        max-width: 1126px;
+        margin: 0 auto;
+        border-left: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #16171d;
+          color: #9ca3af;
+        }
+        #root {
+          border-color: #374151;
+        }
+      }
+    </style>
   </head>
-  <body class="m-0 bg-white text-gray-500 dark:bg-[#16171d] dark:text-gray-400 antialiased">
-    <div id="root" class="max-w-[1126px] mx-auto border-x border-gray-200 dark:border-gray-700 min-h-svh flex flex-col text-center"></div>
+  <body>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

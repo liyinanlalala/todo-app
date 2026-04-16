@@ -1,84 +1,117 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from "react";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Empty,
+  Flex,
+  Form,
+  Input,
+  List,
+  Space,
+  Spin,
+  Typography,
+} from "antd";
+import { DeleteOutlined, LogoutOutlined } from "@ant-design/icons";
 import {
   useAddTodo,
   useDeleteTodo,
   useToggleTodo,
   useTodosQuery,
-} from '../hooks/useTodosQuery'
+} from "../hooks/useTodosQuery";
+
+const { Title, Text } = Typography;
 
 type Props = {
-  onLogout: () => void
-}
+  onLogout: () => void;
+};
 
 function Todos({ onLogout }: Props) {
-  const { data: todos, isPending, isError, error } = useTodosQuery()
-  const addMutation = useAddTodo()
-  const toggleMutation = useToggleTodo()
-  const deleteMutation = useDeleteTodo()
-  const [input, setInput] = useState('')
+  const { data: todos, isPending, isError, error } = useTodosQuery();
+  const addMutation = useAddTodo();
+  const toggleMutation = useToggleTodo();
+  const deleteMutation = useDeleteTodo();
+  const [input, setInput] = useState("");
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const trimmed = input.trim()
-    if (!trimmed) return
+  const handleAdd = () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
     addMutation.mutate(trimmed, {
-      onSuccess: () => setInput(''),
-    })
-  }
+      onSuccess: () => setInput(""),
+    });
+  };
 
   return (
-    <main className="max-w-lg mx-auto mt-12 p-8">
-      <div className="flex items-baseline justify-between mb-6">
-        <h1 className="text-3xl font-medium text-gray-900 dark:text-gray-100">Todos</h1>
-        <button
-          type="button"
-          className="bg-transparent border-none text-blue-500 cursor-pointer underline hover:text-blue-600"
-          onClick={onLogout}
-        >
+    <div className="max-w-[560px] mx-auto mt-12 px-4">
+      <Flex align="baseline" justify="space-between" className="mb-6">
+        <Title level={2} className="m-0!">
+          Todos
+        </Title>
+        <Button type="link" icon={<LogoutOutlined />} onClick={onLogout}>
           退出登录
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
-      <form className="flex gap-2 mb-6" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="要做点什么?"
-          aria-label="新 todo 内容"
-          disabled={addMutation.isPending}
-          className="flex-1 px-3 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || addMutation.isPending}
-          className="px-5 py-2.5 text-base rounded-md bg-blue-500 text-white cursor-pointer hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {addMutation.isPending ? '添加中…' : '添加'}
-        </button>
-      </form>
+      <Form layout="inline" onFinish={handleAdd} className="flex gap-2 mb-6">
+        <Form.Item className="flex-1 me-0!">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="要做点什么?"
+            aria-label="新 todo 内容"
+            disabled={addMutation.isPending}
+          />
+        </Form.Item>
+        <Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            disabled={!input.trim() || addMutation.isPending}
+            loading={addMutation.isPending}
+          >
+            {addMutation.isPending ? "添加中…" : "添加"}
+          </Button>
+        </Form.Item>
+      </Form>
 
-      {isPending && <p className="text-gray-500 text-center py-8">加载中…</p>}
+      {isPending && (
+        <Flex justify="center" className="py-8">
+          <Spin description="加载中…" />
+        </Flex>
+      )}
 
       {isError && (
-        <p className="text-red-500 text-sm">加载失败：{error.message}</p>
+        <Alert
+          type="error"
+          showIcon
+          title="加载失败"
+          description={error.message}
+        />
       )}
 
       {!isPending && !isError && todos.length === 0 && (
-        <p className="text-gray-500 text-center py-8">还没有任何任务，加一个吧。</p>
+        <Empty description="还没有任何任务，加一个吧。" className="py-8" />
       )}
 
       {!isPending && !isError && todos.length > 0 && (
         <>
-          <ul className="list-none p-0 m-0">
-            {todos.map((todo) => (
-              <li
-                key={todo.id}
-                className="flex items-center justify-between py-2.5 px-1 border-b border-gray-100 dark:border-gray-700"
+          <List
+            dataSource={todos}
+            renderItem={(todo) => (
+              <List.Item
+                actions={[
+                  <Button
+                    key="delete"
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => deleteMutation.mutate(todo.id)}
+                    aria-label={`删除 ${todo.text}`}
+                  />,
+                ]}
               >
-                <label className="flex items-center gap-2.5 flex-1 cursor-pointer">
-                  <input
-                    type="checkbox"
+                <Space>
+                  <Checkbox
                     checked={todo.completed}
                     onChange={() =>
                       toggleMutation.mutate({
@@ -87,28 +120,23 @@ function Todos({ onLogout }: Props) {
                       })
                     }
                   />
-                  <span className={todo.completed ? 'line-through text-gray-400' : ''}>
+                  <Text
+                    delete={todo.completed}
+                    type={todo.completed ? "secondary" : undefined}
+                  >
                     {todo.text}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  className="bg-transparent border-none text-red-500 text-xl cursor-pointer px-1.5 hover:text-red-600"
-                  onClick={() => deleteMutation.mutate(todo.id)}
-                  aria-label={`删除 ${todo.text}`}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-gray-500 text-sm">
+                  </Text>
+                </Space>
+              </List.Item>
+            )}
+          />
+          <Text type="secondary" className="block mt-4">
             剩余 {todos.filter((t) => !t.completed).length} 项
-          </p>
+          </Text>
         </>
       )}
-    </main>
-  )
+    </div>
+  );
 }
 
-export default Todos
+export default Todos;

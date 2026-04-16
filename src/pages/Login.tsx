@@ -1,76 +1,60 @@
-import { useState, type FormEvent } from 'react'
+import { Button, Card, Form, Input, Typography } from "antd";
+
+const { Title, Text, Link } = Typography;
 
 type Props = {
-  onSuccess: () => void
-  onSwitchToRegister: () => void
-}
+  onSuccess: () => void;
+  onSwitchToRegister: () => void;
+};
 
 function Login({ onSuccess, onSwitchToRegister }: Props) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [form] = Form.useForm();
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('请输入有效的邮箱地址')
-      return
+  const handleFinish = (values: { email: string; password: string }) => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      form.setFields([{ name: "email", errors: ["请输入有效的邮箱地址"] }]);
+      return;
     }
-    if (password.length < 6) {
-      setError('密码至少 6 位')
-      return
+    if (values.password.length < 6) {
+      form.setFields([{ name: "password", errors: ["密码至少 6 位"] }]);
+      return;
     }
-    setError(null)
-    // TODO: 接入真实登录接口
-    onSuccess()
-  }
+    onSuccess();
+  };
 
   return (
-    <main className="max-w-sm mx-auto mt-20 p-8 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
-      <h1 className="mb-6 text-2xl font-medium text-center text-gray-900 dark:text-gray-100">登录</h1>
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <label className="flex flex-col gap-1 text-sm text-gray-700 dark:text-gray-300">
-          邮箱
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-            className="px-3 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-gray-700 dark:text-gray-300">
-          密码
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-            className="px-3 py-2.5 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-          />
-        </label>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button
-          type="submit"
-          className="mt-1 px-5 py-3 text-base rounded-md bg-blue-500 text-white cursor-pointer hover:bg-blue-600 transition-colors"
-        >
+    <div className="max-w-[400px] mx-auto mt-20 px-4">
+      <Card>
+        <Title level={2} className="text-center mb-6">
           登录
-        </button>
-      </form>
-      <p className="mt-6 text-center text-gray-500 text-sm">
-        还没有账号?{' '}
-        <button
-          type="button"
-          className="bg-transparent border-none text-blue-500 cursor-pointer text-sm p-0 underline hover:text-blue-600"
-          onClick={onSwitchToRegister}
-        >
-          去注册
-        </button>
-      </p>
-    </main>
-  )
+        </Title>
+        <Form form={form} layout="vertical" onFinish={handleFinish}>
+          <Form.Item
+            label="邮箱"
+            name="email"
+            rules={[{ required: true, message: "请输入邮箱" }]}
+          >
+            <Input type="email" autoComplete="email" />
+          </Form.Item>
+          <Form.Item
+            label="密码"
+            name="password"
+            rules={[{ required: true, message: "请输入密码" }]}
+          >
+            <Input.Password autoComplete="current-password" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block size="large">
+              登录
+            </Button>
+          </Form.Item>
+        </Form>
+        <Text type="secondary" className="block text-center">
+          还没有账号? <Link onClick={onSwitchToRegister}>去注册</Link>
+        </Text>
+      </Card>
+    </div>
+  );
 }
 
-export default Login
+export default Login;
