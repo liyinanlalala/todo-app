@@ -99,12 +99,16 @@ git push -u origin main            # -u 让本地 main 跟踪 origin/main，之�
 
 ```
 server/
+├── prisma/
+│   ├── schema.prisma  # 数据模型定义
+│   └── migrations/    # 迁移文件（prisma migrate dev 自动生成）
 ├── src/
+│   ├── generated/prisma/  # Prisma 自动生成的客户端代码（不要手动改）
 │   ├── routes/        # 路由定义
 │   ├── controllers/   # 业务逻辑
 │   ├── middlewares/   # 中间件（认证、错误处理）
-│   ├── prisma/        # DB schema 和 client
 │   └── index.ts       # 入口
+├── prisma.config.ts   # Prisma 配置（npx prisma init 自动生成）
 ├── .env
 ├── package.json
 └── tsconfig.json
@@ -119,19 +123,25 @@ server/
 
 ### 2.3 数据库 + Prisma（1周）
 
-安装 Prisma（装在项目里，不要全局安装，避免版本不一致）：
+安装 Prisma（在 `server/` 目录下安装，不要装到前端项目里）：
 
 ```bash
+cd server
 pnpm add -D prisma
 pnpm add @prisma/client
+npx prisma init          # 生成 prisma/schema.prisma 和 prisma.config.ts
 ```
 
-用 Docker 启动 PostgreSQL：
+> ⚠️ `npx prisma init` 会生成一个 `.env` 文件，里面的 `DATABASE_URL` 是默认值，需要改成你 Docker 数据库的连接串，比如 `postgresql://postgres:password@localhost:5432/todo`
+
+用 Docker 启动 PostgreSQL（在项目根目录，不是 `server/` 下）：
 
 ```bash
-# 编写 docker-compose.yml 后执行
+# 编写 docker-compose.yml 和 .env 后执行
 docker compose up -d
 ```
+
+> `.env` 中定义 `POSTGRES_USER`、`POSTGRES_PASSWORD`、`POSTGRES_DB`，`docker-compose.yml` 通过 `env_file: .env` 引用，避免在 yml 里硬编码密码。确保 `.env` 已加入 `.gitignore`。
 
 Prisma 需要掌握：
 
@@ -167,7 +177,7 @@ DELETE /todos/:id      # 需要认证
 ### 后端 `Dockerfile`
 
 ```dockerfile
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
@@ -177,22 +187,30 @@ EXPOSE 3000
 CMD ["node", "dist/index.js"]
 ```
 
-### `docker-compose.yml`（本地开发用）
+### `docker-compose.yml`（本地开发用，升级版）
 
 ```yaml
 services:
   db:
     image: postgres:16
-    environment:
-      POSTGRES_PASSWORD: password
+    env_file:
+      - .env
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
   server:
     build: ./server
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
+      # 容器间通信用服务名 db 而不是 localhost
       DATABASE_URL: postgresql://postgres:password@db:5432/todo
+
+volumes:
+  pgdata:
 ```
 
 **你需要搞懂：**
