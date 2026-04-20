@@ -40,3 +40,13 @@ pnpm preview    # 预览生产构建
 ### TypeScript 结构
 
 使用 project references：根 `tsconfig.json` 组合了 `tsconfig.app.json`（`src/` 应用代码）和 `tsconfig.node.json`（Vite 等工具配置）。`pnpm build` 中的 `tsc -b` 会按引用关系编译——修改编译选项时要改对应的子配置文件，而不是根 `tsconfig.json`。
+
+## 用户画像
+
+前端开发工程师，工作年限约 1 年 9 个月。
+
+**熟悉：** React、TypeScript（日常使用），前端开发日常流程。
+
+**薄弱：** Node.js 后端开发、项目构建（打包、工程化配置）、部署（上线流程、CI/CD 等）。
+
+**学习目标：** 通过本项目补足后端、构建、部署的短板，不回避弱项，正面突破。
