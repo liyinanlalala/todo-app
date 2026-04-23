@@ -3,7 +3,7 @@
 ## 运行环境
 
 - Node.js >= 24（通过 nvm 管理，见 `.nvmrc`）
-- 包管理器：pnpm（`engine-strict=true`，严格校验 Node 版本）
+- 包管理器：pnpm（`engine-strict=true`）
 
 ## 前端技术栈
 
@@ -11,51 +11,72 @@
 | ---------- | ---------------------------------------------------------- |
 | 框架       | React 19 + TypeScript 6                                    |
 | 构建工具   | Vite 8（@vitejs/plugin-react）                             |
+| 样式       | Tailwind CSS 4（@tailwindcss/vite 插件）                   |
+| UI 组件库  | Ant Design 6 + @ant-design/icons                           |
 | 服务端状态 | TanStack React Query 5                                     |
+| 测试       | Vitest 4 + Testing Library + jsdom                         |
 | Lint       | ESLint 9 + typescript-eslint + react-hooks + react-refresh |
 
-## 规划中的技术栈（尚未引入）
+## 后端技术栈
 
-- 样式：Tailwind CSS
-- 后端：Node.js + Express
-- 数据库：PostgreSQL + Prisma
-- 认证：JWT + bcrypt
-- 容器化：Docker + Docker Compose
-- 部署：Railway（后端）+ Vercel（前端）
-- CI/CD：GitHub Actions
+| 类别   | 技术                            |
+| ------ | ------------------------------- |
+| 框架   | Express 5                       |
+| 语言   | TypeScript 6（ESM，tsx 热重载） |
+| 数据库 | PostgreSQL 16（Docker）         |
+| ORM    | Prisma 7（@prisma/adapter-pg）  |
+| 认证   | JWT（jsonwebtoken）+ bcrypt     |
 
 ## 常用命令
 
+### 前端（项目根目录）
+
 ```bash
-# 安装依赖
-pnpm install
+pnpm install          # 安装依赖
+pnpm dev              # 启动 Vite 开发服务器（HMR）
+pnpm build            # 类型检查 + 生产构建
+pnpm lint             # ESLint 检查
+pnpm test             # 运行测试（vitest run，单次执行）
+pnpm preview          # 预览生产构建
+```
 
-# 启动开发服务器（HMR）
-pnpm dev
+### 后端（`server/` 目录）
 
-# 类型检查 + 生产构建
-pnpm build
+```bash
+pnpm install          # 安装依赖
+pnpm dev              # tsx watch 热重载开发
+pnpm build            # TypeScript 编译
+pnpm start            # 运行编译产物
+```
 
-# ESLint 检查
-pnpm lint
+### 数据库
 
-# 预览生产构建
-pnpm preview
+```bash
+docker compose up -d                          # 启动 PostgreSQL
+cd server && pnpm prisma migrate dev          # 运行数据库迁移
+cd server && pnpm prisma generate             # 生成 Prisma Client
 ```
 
 ## TypeScript 配置
 
-- 目标：ES2023
-- JSX：react-jsx
+### 前端（`tsconfig.app.json`）
+
+- 目标：ES2023，JSX：react-jsx
 - 模块解析：bundler 模式
 - 严格检查：`noUnusedLocals`、`noUnusedParameters`、`noFallthroughCasesInSwitch`
-- 项目引用：`tsconfig.app.json`（src 目录）+ `tsconfig.node.json`（Vite 配置）
+
+### 后端（`server/tsconfig.json`）
+
+- 目标：ESNext，模块：NodeNext
+- 严格模式，`verbatimModuleSyntax`
+- 导入需带 `.js` 扩展名（ESM 规范）
 
 ## 代码风格约定
 
 - 使用中文编写代码注释和 UI 文案
 - 组件使用 `function` 声明 + `export default`
 - 类型优先使用 `type` 而非 `interface`
-- 使用 `import type` 进行类型导入
-- API 层模拟异步延迟（200ms），为后续接入真实后端做准备
+- 使用 `import type` 进行类型导入（`verbatimModuleSyntax`）
+- 后端 ESM 导入路径必须带 `.js` 后缀
 - React Query 的 mutation 在 `onSuccess` 中通过 `invalidateQueries` 刷新列表
+- 环境变量通过 `process.env['KEY']` 方括号语法访问
