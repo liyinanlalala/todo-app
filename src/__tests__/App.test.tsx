@@ -43,6 +43,8 @@ function getLogoutButton() {
 }
 
 beforeEach(() => {
+  // 默认：未登录状态
+  vi.mocked(authApi.checkAuth).mockRejectedValue(new Error("未登录"));
   vi.mocked(authApi.login).mockResolvedValue({ message: "登录成功" });
   vi.mocked(authApi.register).mockResolvedValue({ message: "注册成功" });
   vi.mocked(authApi.logout).mockResolvedValue({ message: "已退出登录" });
@@ -50,19 +52,34 @@ beforeEach(() => {
 });
 
 describe("App", () => {
-  it("默认显示登录页", () => {
+  it("未登录时显示登录页", async () => {
     setup();
-    expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "登录" }),
+    ).toBeInTheDocument();
+  });
+
+  it("已登录时直接进入 Todos 页", async () => {
+    vi.mocked(authApi.checkAuth).mockResolvedValue({
+      id: 1,
+      email: "test@test.com",
+    });
+    setup();
+    expect(
+      await screen.findByRole("heading", { name: "Todos" }),
+    ).toBeInTheDocument();
   });
 
   it("从登录页切换到注册页", async () => {
     const { user } = setup();
+    await screen.findByRole("heading", { name: "登录" });
     await user.click(screen.getByText("去注册"));
     expect(screen.getByRole("heading", { name: "注册" })).toBeInTheDocument();
   });
 
   it("从注册页切换回登录页", async () => {
     const { user } = setup();
+    await screen.findByRole("heading", { name: "登录" });
     await user.click(screen.getByText("去注册"));
     await user.click(screen.getByText("去登录"));
     expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
@@ -70,6 +87,7 @@ describe("App", () => {
 
   it("登录成功后进入 Todos 页", async () => {
     const { user } = setup();
+    await screen.findByRole("heading", { name: "登录" });
     await user.type(getInput("邮箱"), "test@test.com");
     await user.type(getInput("密码"), "123456");
     await user.click(getLoginButton());
@@ -80,6 +98,7 @@ describe("App", () => {
 
   it("注册成功后进入 Todos 页", async () => {
     const { user } = setup();
+    await screen.findByRole("heading", { name: "登录" });
     await user.click(screen.getByText("去注册"));
     await user.type(getInput("邮箱"), "test@test.com");
     await user.type(getInput("密码"), "123456");
@@ -92,12 +111,11 @@ describe("App", () => {
 
   it("退出登录回到登录页", async () => {
     const { user } = setup();
-    // 先登录
+    await screen.findByRole("heading", { name: "登录" });
     await user.type(getInput("邮箱"), "test@test.com");
     await user.type(getInput("密码"), "123456");
     await user.click(getLoginButton());
     await screen.findByRole("heading", { name: "Todos" });
-    // 退出
     await user.click(getLogoutButton());
     await waitFor(() => {
       expect(

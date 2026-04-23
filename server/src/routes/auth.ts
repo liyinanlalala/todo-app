@@ -68,6 +68,30 @@ router.post('/login', async (req, res) => {
   res.json({ message: '登录成功' })
 })
 
+// GET /auth/me — 检查当前登录态，返回用户信息
+router.get('/me', async (req, res) => {
+  const token = req.cookies?.['token']
+  if (!token) {
+    res.status(401).json({ error: '未登录' })
+    return
+  }
+
+  try {
+    const payload = jwt.verify(token, getJwtSecret()) as { userId: number }
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, email: true },
+    })
+    if (!user) {
+      res.status(401).json({ error: '用户不存在' })
+      return
+    }
+    res.json(user)
+  } catch {
+    res.status(401).json({ error: 'token 无效或已过期' })
+  }
+})
+
 // POST /auth/logout
 router.post('/logout', (_req, res) => {
   res.clearCookie('token')

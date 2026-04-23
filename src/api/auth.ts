@@ -31,3 +31,17 @@ export function register(email: string, password: string) {
 export function logout() {
   return request('/auth/logout', {})
 }
+
+export type User = { id: number; email: string }
+
+export async function checkAuth(): Promise<User> {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    throw new Error('未登录')
+  }
+
+  return res.json() as Promise<User>
+}
