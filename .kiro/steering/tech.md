@@ -25,7 +25,7 @@
 | 语言   | TypeScript 6（ESM，tsx 热重载） |
 | 数据库 | PostgreSQL 16（Docker）         |
 | ORM    | Prisma 7（@prisma/adapter-pg）  |
-| 认证   | JWT（jsonwebtoken）+ bcrypt     |
+| 认证   | JWT（httpOnly cookie）+ bcrypt  |
 
 ## 常用命令
 
@@ -80,3 +80,11 @@ cd server && pnpm prisma generate             # 生成 Prisma Client
 - 后端 ESM 导入路径必须带 `.js` 后缀
 - React Query 的 mutation 在 `onSuccess` 中通过 `invalidateQueries` 刷新列表
 - 环境变量通过 `process.env['KEY']` 方括号语法访问
+
+## 认证机制
+
+- JWT 存储在 httpOnly cookie 中（非 Authorization header）
+- 前端所有请求需带 `credentials: 'include'` 以发送/接收 cookie
+- 后端 CORS 配置 `credentials: true`，`origin` 指定前端地址
+- cookie 配置：`httpOnly`、`sameSite: 'lax'`、`secure: false`（开发环境）
+- 前端通过 `GET /auth/me` 检查登录态，失败则跳转登录页

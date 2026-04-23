@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目说明
 
-前后端分离的 todo 应用。前端基于 Vite React-TS 模板，包含登录/注册页面和 todo CRUD 功能；后端基于 Express + Prisma + PostgreSQL，提供 auth 和 todos REST API。**前端目前尚未对接后端**，数据仍通过 localStorage 持久化、认证仅做前端校验。
+前后端分离的全栈 todo 应用。前端基于 Vite React-TS，包含登录/注册页面和 todo CRUD 功能；后端基于 Express + Prisma + PostgreSQL，提供 auth 和 todos REST API。前后端已对接，认证通过 HttpOnly cookie 实现。
 
 ## 技术栈
 
@@ -21,8 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Express 5** + TypeScript，使用 `tsx watch` 开发热重载。
 - **Prisma 7**（`@prisma/client` + `@prisma/adapter-pg`）作为 ORM，schema 定义 User 和 Todo 两个模型。Prisma Client 输出到 `server/src/generated/prisma`。
 - **PostgreSQL 16**，通过 `docker-compose.yml` 管理，数据持久化到 Docker volume `pgdata`。
-- 认证：**bcrypt** 密码哈希 + **jsonwebtoken** JWT（7 天过期）。
-- 路由：`/auth`（登录/注册）、`/todos`（CRUD，需 Bearer token）、`/health`（健康检查）。
+- 认证：**bcrypt** 密码哈希 + **jsonwebtoken** JWT，通过 **HttpOnly cookie** 传递（7 天有效期），使用 **cookie-parser** 解析。
+- CORS 配置了 `credentials: true`，前端 origin 为 `http://localhost:5173`。
 
 ### 通用
 
@@ -59,22 +59,37 @@ cd server && npx prisma generate        # 重新生成 Prisma Client
 
 ## 架构
 
+### 认证流程
+
+采用 HttpOnly cookie 方案。登录/注册成功后，后端通过 `Set-Cookie` 写入 JWT；前端所有请求带 `credentials: 'include'`，浏览器自动携带 cookie。前端启动时调用 `GET /auth/me` 检查登录态，已登录则直接进入 Todos 页，未登录显示登录页。
+
 ### 前端路由与页面
 
-没有使用路由库。`App.tsx` 通过 `useState<Page>` 手动切换三个页面：`login` → `register` → `todos`。Login/Register 使用 Ant Design Form 组件，仅做前端表单校验（邮箱格式、密码长度），通过校验即调用 `onSuccess` 跳转，尚未对接后端 API。
+没有使用路由库。`App.tsx` 通过 `useState<Page>` 手动切换页面：启动时检查登录态 → 未登录进 `login`/`register` → 登录成功进 `todos`。Login/Register 使用 Ant Design Form 组件，调用后端 auth API。
 
-### 前端数据层（当前为 localStorage 模拟）
+### 前端数据层
 
-- `src/api/todos.ts`：封装 localStorage 的 CRUD 操作，所有函数返回 Promise（带 200ms 模拟延迟），对外模拟异步 API 接口。存储 key 为 `todo-app:todos`。
+- `src/api/auth.ts`：封装 login/register/logout/checkAuth，所有请求带 `credentials: 'include'`。
+- `src/api/todos.ts`：封装 `/todos` REST API 的 CRUD 操作（fetch + `credentials: 'include'`）。
 - `src/hooks/useTodosQuery.ts`：基于 react-query 封装 `useTodosQuery`、`useAddTodo`、`useToggleTodo`、`useDeleteTodo` 四个 hooks，mutation 成功后通过 `invalidateQueries` 刷新列表。
 - QueryClient 配置（`main.tsx`）：`staleTime: Infinity`，`refetchOnWindowFocus: false`——仅在 mutation 触发 invalidation 时刷新。
 
-### 后端
+### 后端 API
 
-- `server/src/index.ts`：Express 入口，挂载 cors、json 解析、路由。默认端口 3000（`PORT` 环境变量可覆盖）。
-- `server/src/routes/auth.ts`：`POST /auth/register`（409 邮箱已存在）、`POST /auth/login`（401 凭据错误），返回 JWT。
-- `server/src/routes/todos.ts`：所有路由经过 `requireAuth` 中间件，从 JWT 中提取 `userId` 挂载到 `req.userId`。
-- `server/src/middlewares/auth.ts`：解析 `Authorization: Bearer <token>`，通过 declare global 扩展 Express Request 类型。
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | /auth/register | 注册（409 邮箱已存在） | 否 |
+| POST | /auth/login | 登录（401 凭据错误） | 否 |
+| GET | /auth/me | 检查登录态，返回用户信息 | cookie |
+| POST | /auth/logout | 清除 cookie | 否 |
+| GET | /todos | 查询当前用户的 todo 列表 | cookie |
+| POST | /todos | 创建 todo | cookie |
+| PATCH | /todos/:id | 更新 todo | cookie |
+| DELETE | /todos/:id | 删除 todo | cookie |
+| GET | /health | 健康检查 | 否 |
+
+- `server/src/index.ts`：Express 入口，挂载 cors（credentials）、cookie-parser、json 解析、路由。默认端口 3000。
+- `server/src/middlewares/auth.ts`：从 `req.cookies['token']` 读取 JWT，验证后挂载 `req.userId`。通过 declare global 扩展 Express Request 类型。
 - `server/src/prisma.ts`：Prisma Client 单例，供各路由共享。
 
 ### TypeScript 结构

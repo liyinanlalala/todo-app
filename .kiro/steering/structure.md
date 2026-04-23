@@ -21,8 +21,9 @@ todo-app/
 │   ├── index.css               # 全局样式（Tailwind 入口）
 │   ├── types.ts                # 共享类型定义
 │   ├── test-setup.ts           # Vitest 全局 setup
-│   ├── api/                    # 数据访问层（当前 localStorage 模拟）
-│   │   └── todos.ts
+│   ├── api/                    # 数据访问层（REST API 调用）
+│   │   ├── auth.ts             # 认证 API（login/register/logout/checkAuth）
+│   │   └── todos.ts            # Todo CRUD API
 │   ├── hooks/                  # React Query hooks
 │   │   └── useTodosQuery.ts
 │   ├── pages/                  # 页面组件
@@ -44,7 +45,7 @@ todo-app/
         ├── prisma.ts           # Prisma Client 单例
         ├── generated/prisma/   # Prisma 生成的类型和客户端（勿手动编辑）
         ├── routes/
-        │   ├── auth.ts         # 认证路由（/auth/register, /auth/login）
+        │   ├── auth.ts         # 认证路由（register/login/me/logout）
         │   └── todos.ts        # Todo CRUD 路由（/todos）
         └── middlewares/
             └── auth.ts         # JWT 认证中间件（requireAuth）
