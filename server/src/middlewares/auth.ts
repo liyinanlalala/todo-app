@@ -11,16 +11,9 @@ declare global {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers['authorization']
-  if (!header) {
-    res.status(401).json({ error: '未提供认证 token' })
-    return
-  }
-
-  // Authorization: Bearer <token>
-  const token = header.split(' ')[1]
+  const token = req.cookies?.['token']
   if (!token) {
-    res.status(401).json({ error: 'token 格式错误' })
+    res.status(401).json({ error: '未提供认证 token' })
     return
   }
 

@@ -31,7 +31,13 @@ router.post('/register', async (req, res) => {
 
   const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '7d' })
 
-  res.status(201).json({ token })
+  res.cookie('token', token, {
+    httpOnly: true,     // JS 无法读取，防 XSS
+    secure: false,      // 本地开发用 http，生产环境改为 true
+    sameSite: 'lax',    // 防 CSRF：仅同站请求或顶级导航时携带
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天，单位毫秒，和 JWT 过期时间一致
+  })
+  res.status(201).json({ message: '注册成功' })
 })
 
 // POST /auth/login
@@ -53,7 +59,13 @@ router.post('/login', async (req, res) => {
 
   const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '7d' })
 
-  res.json({ token })
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  })
+  res.json({ message: '登录成功' })
 })
 
 export default router
