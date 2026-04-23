@@ -68,4 +68,10 @@ router.post('/login', async (req, res) => {
   res.json({ message: '登录成功' })
 })
 
+// POST /auth/logout
+router.post('/logout', (_req, res) => {
+  res.clearCookie('token')
+  res.json({ message: '已退出登录' })
+})
+
 export default router

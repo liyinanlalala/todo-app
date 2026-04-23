@@ -1,59 +1,51 @@
 import type { Todo } from '../types'
 
-const STORAGE_KEY = 'todo-app:todos'
-const LATENCY_MS = 200
+const API_BASE = 'http://localhost:3000'
 
-function delay<T>(value: T): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), LATENCY_MS))
-}
+async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${url}`, {
+    credentials: 'include',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  })
 
-function read(): Todo[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as Todo[]) : []
-  } catch {
-    return []
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({})) as { error?: string }
+    throw new Error(data.error ?? '请求失败')
   }
-}
 
-function write(todos: Todo[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
+  // 204 No Content（删除接口）
+  if (res.status === 204) return undefined as T
+
+  return res.json() as Promise<T>
 }
 
 export function listTodos(): Promise<Todo[]> {
-  return delay(read())
+  return request<Todo[]>('/todos')
 }
 
-export function createTodo(text: string): Promise<Todo> {
-  const trimmed = text.trim()
-  if (!trimmed) return Promise.reject(new Error('内容不能为空'))
-  const todo: Todo = {
-    id: crypto.randomUUID(),
-    text: trimmed,
-    completed: false,
-  }
-  const next = [...read(), todo]
-  write(next)
-  return delay(todo)
+export function createTodo(title: string): Promise<Todo> {
+  return request<Todo>('/todos', {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  })
 }
 
 export function updateTodo(
-  id: string,
-  patch: Partial<Pick<Todo, 'text' | 'completed'>>,
+  id: number,
+  patch: Partial<Pick<Todo, 'title' | 'completed'>>,
 ): Promise<Todo> {
-  const todos = read()
-  const idx = todos.findIndex((t) => t.id === id)
-  if (idx === -1) return Promise.reject(new Error('Todo 不存在'))
-  const updated = { ...todos[idx], ...patch }
-  const next = todos.map((t) => (t.id === id ? updated : t))
-  write(next)
-  return delay(updated)
+  return request<Todo>(`/todos/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
 }
 
-export function deleteTodo(id: string): Promise<void> {
-  const next = read().filter((t) => t.id !== id)
-  write(next)
-  return delay(undefined)
+export function deleteTodo(id: number): Promise<void> {
+  return request<void>(`/todos/${id}`, {
+    method: 'DELETE',
+  })
 }

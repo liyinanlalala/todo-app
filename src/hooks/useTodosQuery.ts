@@ -18,7 +18,7 @@ export function useTodosQuery() {
 export function useAddTodo() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (text: string) => createTodo(text),
+    mutationFn: (title: string) => createTodo(title),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TODOS_KEY })
     },
@@ -28,7 +28,7 @@ export function useAddTodo() {
 export function useToggleTodo() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, completed }: { id: string; completed: boolean }) =>
+    mutationFn: ({ id, completed }: { id: number; completed: boolean }) =>
       updateTodo(id, { completed }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TODOS_KEY })
@@ -39,7 +39,7 @@ export function useToggleTodo() {
 export function useDeleteTodo() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => deleteTodo(id),
+    mutationFn: (id: number) => deleteTodo(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TODOS_KEY })
     },

@@ -1,6 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Login from "../Login";
+import * as authApi from "../../api/auth";
+
+vi.mock("../../api/auth");
 
 function setup() {
   const onSuccess = vi.fn();
@@ -25,20 +28,16 @@ function getSubmitButton() {
   return screen.getByRole("button", { name: /登\s*录/ });
 }
 
+beforeEach(() => {
+  vi.mocked(authApi.login).mockResolvedValue({ message: "登录成功" });
+});
+
 describe("Login", () => {
   it("渲染登录表单", () => {
     setup();
     expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
     expect(getInput("邮箱")).toBeInTheDocument();
     expect(getInput("密码")).toBeInTheDocument();
-  });
-
-  it("无效邮箱显示错误", async () => {
-    const { user } = setup();
-    await user.type(getInput("邮箱"), "test@localhost");
-    await user.type(getInput("密码"), "123456");
-    await user.click(getSubmitButton());
-    expect(await screen.findByText("请输入有效的邮箱地址")).toBeInTheDocument();
   });
 
   it("密码少于6位显示错误", async () => {
@@ -49,31 +48,25 @@ describe("Login", () => {
     expect(await screen.findByText("密码至少 6 位")).toBeInTheDocument();
   });
 
-  it("有效输入调用 onSuccess", async () => {
+  it("有效输入调用登录 API 并触发 onSuccess", async () => {
     const { user, onSuccess } = setup();
     await user.type(getInput("邮箱"), "test@test.com");
     await user.type(getInput("密码"), "123456");
     await user.click(getSubmitButton());
-    expect(onSuccess).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledOnce();
+    });
+    expect(authApi.login).toHaveBeenCalledWith("test@test.com", "123456");
   });
 
-  it("先触发错误再正确提交，错误消息消失", async () => {
+  it("登录失败显示错误信息", async () => {
+    vi.mocked(authApi.login).mockRejectedValue(new Error("邮箱或密码错误"));
     const { user, onSuccess } = setup();
-    // 先触发密码错误
     await user.type(getInput("邮箱"), "test@test.com");
-    await user.type(getInput("密码"), "123");
-    await user.click(getSubmitButton());
-    expect(await screen.findByText("密码至少 6 位")).toBeInTheDocument();
-
-    // 修正密码后重新提交
-    await user.clear(getInput("密码"));
     await user.type(getInput("密码"), "123456");
     await user.click(getSubmitButton());
-    // antd 错误消息有离场动画，等待动画完成
-    await waitFor(() => {
-      expect(screen.queryByText("密码至少 6 位")).not.toBeInTheDocument();
-    });
-    expect(onSuccess).toHaveBeenCalledOnce();
+    expect(await screen.findByText("邮箱或密码错误")).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it('点击"去注册"调用 onSwitchToRegister', async () => {

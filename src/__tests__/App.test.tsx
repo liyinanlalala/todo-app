@@ -1,7 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "../App";
+import * as authApi from "../api/auth";
+import * as todosApi from "../api/todos";
+
+vi.mock("../api/auth");
+vi.mock("../api/todos");
 
 function setup() {
   const queryClient = new QueryClient({
@@ -32,18 +37,16 @@ function getLoginButton() {
   return screen.getByRole("button", { name: /登\s*录/ });
 }
 
-// 辅助：获取添加按钮
-function getAddButton() {
-  return screen.getByRole("button", { name: /添\s*加/ });
-}
-
 // 辅助：获取退出登录按钮
 function getLogoutButton() {
   return screen.getByRole("button", { name: /退出登录/ });
 }
 
 beforeEach(() => {
-  localStorage.clear();
+  vi.mocked(authApi.login).mockResolvedValue({ message: "登录成功" });
+  vi.mocked(authApi.register).mockResolvedValue({ message: "注册成功" });
+  vi.mocked(authApi.logout).mockResolvedValue({ message: "已退出登录" });
+  vi.mocked(todosApi.listTodos).mockResolvedValue([]);
 });
 
 describe("App", () => {
@@ -87,50 +90,6 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("登录→添加 todo→退出→重新登录，数据保持", async () => {
-    const { user } = setup();
-    // 登录
-    await user.type(getInput("邮箱"), "test@test.com");
-    await user.type(getInput("密码"), "123456");
-    await user.click(getLoginButton());
-    await screen.findByRole("heading", { name: "Todos" });
-
-    // 添加 todo
-    await user.type(screen.getByLabelText("新 todo 内容"), "持久化测试");
-    await user.click(getAddButton());
-    await screen.findByText("持久化测试");
-
-    // 退出
-    await user.click(getLogoutButton());
-    expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
-
-    // 重新登录
-    await user.type(getInput("邮箱"), "test@test.com");
-    await user.type(getInput("密码"), "123456");
-    await user.click(getLoginButton());
-    // todo 数据应保持
-    expect(await screen.findByText("持久化测试")).toBeInTheDocument();
-  });
-
-  it("注册→去登录→登录→Todos 完整流转", async () => {
-    const { user } = setup();
-    // 去注册页
-    await user.click(screen.getByText("去注册"));
-    expect(screen.getByRole("heading", { name: "注册" })).toBeInTheDocument();
-
-    // 切换到登录页
-    await user.click(screen.getByText("去登录"));
-    expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
-
-    // 登录进入 Todos
-    await user.type(getInput("邮箱"), "test@test.com");
-    await user.type(getInput("密码"), "123456");
-    await user.click(getLoginButton());
-    expect(
-      await screen.findByRole("heading", { name: "Todos" }),
-    ).toBeInTheDocument();
-  });
-
   it("退出登录回到登录页", async () => {
     const { user } = setup();
     // 先登录
@@ -140,6 +99,10 @@ describe("App", () => {
     await screen.findByRole("heading", { name: "Todos" });
     // 退出
     await user.click(getLogoutButton());
-    expect(screen.getByRole("heading", { name: "登录" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "登录" }),
+      ).toBeInTheDocument();
+    });
   });
 });

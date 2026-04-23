@@ -1,94 +1,61 @@
 import { listTodos, createTodo, updateTodo, deleteTodo } from '../todos'
 
+const mockTodo = { id: 1, title: '测试', completed: false, createdAt: '2026-01-01T00:00:00.000Z' }
+
 beforeEach(() => {
-  localStorage.clear()
+  vi.restoreAllMocks()
 })
 
 describe('listTodos', () => {
-  it('空 localStorage 返回空数组', async () => {
+  it('返回 todo 列表', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify([mockTodo]), { status: 200 }),
+    )
     const todos = await listTodos()
-    expect(todos).toEqual([])
+    expect(todos).toEqual([mockTodo])
   })
 
-  it('返回已存储的 todos', async () => {
-    const stored = [{ id: '1', text: '测试', completed: false }]
-    localStorage.setItem('todo-app:todos', JSON.stringify(stored))
-    const todos = await listTodos()
-    expect(todos).toEqual(stored)
-  })
-
-  it('损坏的 JSON 返回空数组', async () => {
-    localStorage.setItem('todo-app:todos', '{invalid')
-    const todos = await listTodos()
-    expect(todos).toEqual([])
-  })
-
-  it('非数组值返回空数组', async () => {
-    localStorage.setItem('todo-app:todos', JSON.stringify({ not: 'array' }))
-    const todos = await listTodos()
-    expect(todos).toEqual([])
+  it('请求失败抛出错误', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: '未提供认证 token' }), { status: 401 }),
+    )
+    await expect(listTodos()).rejects.toThrow('未提供认证 token')
   })
 })
 
 describe('createTodo', () => {
-  it('创建并持久化新 todo', async () => {
-    const todo = await createTodo('买牛奶')
-    expect(todo.text).toBe('买牛奶')
-    expect(todo.completed).toBe(false)
-    expect(todo.id).toBeDefined()
-
-    const stored = JSON.parse(localStorage.getItem('todo-app:todos')!)
-    expect(stored).toHaveLength(1)
-    expect(stored[0].text).toBe('买牛奶')
-  })
-
-  it('自动去除首尾空格', async () => {
-    const todo = await createTodo('  有空格  ')
-    expect(todo.text).toBe('有空格')
-  })
-
-  it('空字符串抛出错误', async () => {
-    await expect(createTodo('')).rejects.toThrow('内容不能为空')
-  })
-
-  it('纯空格字符串抛出错误', async () => {
-    await expect(createTodo('   ')).rejects.toThrow('内容不能为空')
+  it('创建新 todo', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(mockTodo), { status: 201 }),
+    )
+    const todo = await createTodo('测试')
+    expect(todo).toEqual(mockTodo)
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/todos'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ title: '测试' }),
+      }),
+    )
   })
 })
 
 describe('updateTodo', () => {
   it('更新 completed 状态', async () => {
-    const todo = await createTodo('任务')
-    const updated = await updateTodo(todo.id, { completed: true })
-    expect(updated.completed).toBe(true)
-    expect(updated.text).toBe('任务')
-  })
-
-  it('更新 text', async () => {
-    const todo = await createTodo('旧文本')
-    const updated = await updateTodo(todo.id, { text: '新文本' })
-    expect(updated.text).toBe('新文本')
-  })
-
-  it('不存在的 id 抛出错误', async () => {
-    await expect(updateTodo('nonexistent', { completed: true })).rejects.toThrow(
-      'Todo 不存在',
+    const updated = { ...mockTodo, completed: true }
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(updated), { status: 200 }),
     )
+    const result = await updateTodo(1, { completed: true })
+    expect(result.completed).toBe(true)
   })
 })
 
 describe('deleteTodo', () => {
-  it('删除指定 todo', async () => {
-    const todo = await createTodo('要删除')
-    await deleteTodo(todo.id)
-    const todos = await listTodos()
-    expect(todos).toHaveLength(0)
-  })
-
-  it('删除不存在的 id 不报错', async () => {
-    await createTodo('保留')
-    await expect(deleteTodo('nonexistent')).resolves.toBeUndefined()
-    const todos = await listTodos()
-    expect(todos).toHaveLength(1)
+  it('删除 todo 返回 undefined', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(null, { status: 204 }),
+    )
+    await expect(deleteTodo(1)).resolves.toBeUndefined()
   })
 })

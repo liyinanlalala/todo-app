@@ -19,6 +19,7 @@ import {
   useToggleTodo,
   useTodosQuery,
 } from "../hooks/useTodosQuery";
+import { logout } from "../api/auth";
 
 const { Title, Text } = Typography;
 
@@ -47,7 +48,11 @@ function Todos({ onLogout }: Props) {
         <Title level={2} className="m-0!">
           Todos
         </Title>
-        <Button type="link" icon={<LogoutOutlined />} onClick={onLogout}>
+        <Button
+          type="link"
+          icon={<LogoutOutlined />}
+          onClick={() => logout().then(onLogout)}
+        >
           退出登录
         </Button>
       </Flex>
@@ -106,7 +111,7 @@ function Todos({ onLogout }: Props) {
                     danger
                     icon={<DeleteOutlined />}
                     onClick={() => deleteMutation.mutate(todo.id)}
-                    aria-label={`删除 ${todo.text}`}
+                    aria-label={`删除 ${todo.title}`}
                   />,
                 ]}
               >
@@ -124,7 +129,7 @@ function Todos({ onLogout }: Props) {
                     delete={todo.completed}
                     type={todo.completed ? "secondary" : undefined}
                   >
-                    {todo.text}
+                    {todo.title}
                   </Text>
                 </Space>
               </List.Item>
