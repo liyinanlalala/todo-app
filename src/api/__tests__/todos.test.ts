@@ -15,11 +15,18 @@ describe('listTodos', () => {
     expect(todos).toEqual([mockTodo])
   })
 
-  it('请求失败抛出错误', async () => {
+  it('401 抛出登录过期错误', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ error: '未提供认证 token' }), { status: 401 }),
     )
-    await expect(listTodos()).rejects.toThrow('未提供认证 token')
+    await expect(listTodos()).rejects.toThrow('登录已过期，请重新登录')
+  })
+
+  it('其他错误抛出响应体中的 error 信息', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: '服务器内部错误' }), { status: 500 }),
+    )
+    await expect(listTodos()).rejects.toThrow('服务器内部错误')
   })
 })
 

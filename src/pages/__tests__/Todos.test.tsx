@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { App as AntdApp } from "antd";
 import Todos from "../Todos";
 import * as todosApi from "../../api/todos";
 import * as authApi from "../../api/auth";
@@ -25,7 +26,9 @@ function createWrapper() {
   });
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <AntdApp>{children}</AntdApp>
+      </QueryClientProvider>
     );
   };
 }
@@ -134,6 +137,41 @@ describe("Todos", () => {
       expect(onLogout).toHaveBeenCalledOnce();
     });
     expect(authApi.logout).toHaveBeenCalledOnce();
+  });
+
+  it("添加失败时显示错误提示", async () => {
+    vi.mocked(todosApi.createTodo).mockRejectedValue(new Error("服务器内部错误"));
+    const { user } = setup();
+    await screen.findByText("还没有任何任务，加一个吧。");
+    await user.type(screen.getByLabelText("新 todo 内容"), "买牛奶");
+    await user.click(getAddButton());
+    expect(await screen.findByText("服务器内部错误")).toBeInTheDocument();
+  });
+
+  it("删除失败时显示错误提示", async () => {
+    vi.mocked(todosApi.listTodos).mockResolvedValue([mockTodo]);
+    vi.mocked(todosApi.deleteTodo).mockRejectedValue(new Error("服务器内部错误"));
+    const { user } = setup();
+    await screen.findByText("测试任务");
+    await user.click(screen.getByRole("button", { name: "删除 测试任务" }));
+    expect(await screen.findByText("服务器内部错误")).toBeInTheDocument();
+  });
+
+  it("切换状态失败时显示错误提示", async () => {
+    vi.mocked(todosApi.listTodos).mockResolvedValue([mockTodo]);
+    vi.mocked(todosApi.updateTodo).mockRejectedValue(new Error("服务器内部错误"));
+    const { user } = setup();
+    await screen.findByText("测试任务");
+    await user.click(screen.getByRole("checkbox"));
+    expect(await screen.findByText("服务器内部错误")).toBeInTheDocument();
+  });
+
+  it("退出登录失败时显示错误提示", async () => {
+    vi.mocked(authApi.logout).mockRejectedValue(new Error("退出失败，请重试"));
+    const { user } = setup();
+    await screen.findByText("还没有任何任务，加一个吧。");
+    await user.click(getLogoutButton());
+    expect(await screen.findByText("退出失败，请重试")).toBeInTheDocument();
   });
 
   it("输入为空时添加按钮禁用", async () => {

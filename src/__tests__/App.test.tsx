@@ -109,6 +109,23 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("session-expired 事件触发时跳回登录页", async () => {
+    vi.mocked(authApi.checkAuth).mockResolvedValue({
+      id: 1,
+      email: "test@test.com",
+    });
+    setup();
+    await screen.findByRole("heading", { name: "Todos" });
+
+    window.dispatchEvent(new CustomEvent("session-expired"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "登录" }),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("退出登录回到登录页", async () => {
     const { user } = setup();
     await screen.findByRole("heading", { name: "登录" });

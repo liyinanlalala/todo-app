@@ -54,7 +54,7 @@ function Todos({ onLogout }: Props) {
         <Button
           type="link"
           icon={<LogoutOutlined />}
-          onClick={() => logout().then(onLogout)}
+          onClick={() => logout().then(onLogout).catch(() => message.error('退出失败，请重试'))}
         >
           退出登录
         </Button>
