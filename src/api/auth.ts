@@ -3,12 +3,14 @@ const API_BASE = 'http://localhost:3000'
 type AuthResponse = { message: string }
 type AuthError = { error: string }
 
-async function request(url: string, body: object): Promise<AuthResponse> {
+async function request(url: string, body?: object): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}${url}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(body),
+    ...(body !== undefined && {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   })
 
   const data = await res.json() as AuthResponse | AuthError
@@ -29,7 +31,7 @@ export function register(email: string, password: string) {
 }
 
 export function logout() {
-  return request('/auth/logout', {})
+  return request('/auth/logout')
 }
 
 export type User = { id: number; email: string }

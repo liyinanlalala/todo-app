@@ -1,4 +1,5 @@
 import type { Todo } from '../types'
+import { SESSION_EXPIRED_EVENT } from '../lib/events'
 
 const API_BASE = 'http://localhost:3000'
 
@@ -11,6 +12,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
       ...options?.headers,
     },
   })
+
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT))
+    throw new Error('登录已过期，请重新登录')
+  }
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({})) as { error?: string }

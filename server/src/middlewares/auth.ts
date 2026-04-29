@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+import { getJwtSecret } from '../lib/jwt.js'
 
 // 扩展 Request 类型，挂载 userId
 declare global {
@@ -17,11 +18,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return
   }
 
-  const secret = process.env['JWT_SECRET']
-  if (!secret) throw new Error('JWT_SECRET environment variable is required')
-
   try {
-    const payload = jwt.verify(token, secret) as { userId: number }
+    const payload = jwt.verify(token, getJwtSecret()) as { userId: number }
     req.userId = payload.userId
     next()
   } catch {

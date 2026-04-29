@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Alert,
+  App,
   Button,
   Checkbox,
   Empty,
@@ -28,6 +29,7 @@ type Props = {
 };
 
 function Todos({ onLogout }: Props) {
+  const { message } = App.useApp();
   const { data: todos, isPending, isError, error } = useTodosQuery();
   const addMutation = useAddTodo();
   const toggleMutation = useToggleTodo();
@@ -39,6 +41,7 @@ function Todos({ onLogout }: Props) {
     if (!trimmed) return;
     addMutation.mutate(trimmed, {
       onSuccess: () => setInput(""),
+      onError: (err) => message.error(err.message),
     });
   };
 
@@ -110,7 +113,11 @@ function Todos({ onLogout }: Props) {
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
-                    onClick={() => deleteMutation.mutate(todo.id)}
+                    onClick={() =>
+                      deleteMutation.mutate(todo.id, {
+                        onError: (err) => message.error(err.message),
+                      })
+                    }
                     aria-label={`删除 ${todo.title}`}
                   />,
                 ]}
@@ -119,10 +126,10 @@ function Todos({ onLogout }: Props) {
                   <Checkbox
                     checked={todo.completed}
                     onChange={() =>
-                      toggleMutation.mutate({
-                        id: todo.id,
-                        completed: !todo.completed,
-                      })
+                      toggleMutation.mutate(
+                        { id: todo.id, completed: !todo.completed },
+                        { onError: (err) => message.error(err.message) },
+                      )
                     }
                   />
                   <Text

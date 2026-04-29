@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import prisma from './prisma.js'
 import authRouter from './routes/auth.js'
 import todosRouter from './routes/todos.js'
+import { errorHandler } from './middlewares/errorHandler.js'
 
 const app = express()
 const PORT = process.env['PORT'] ?? 3000
@@ -23,9 +24,12 @@ app.use('/todos', todosRouter)
 
 // 健康检查接口，验证服务和数据库都正常
 app.get('/health', async (_req, res) => {
-  await prisma.$connect()
+  await prisma.$queryRaw`SELECT 1`
   res.json({ status: 'ok' })
 })
+
+// 全局错误处理（必须在所有路由之后）
+app.use(errorHandler)
 
 // 启动服务
 app.listen(PORT, () => {
