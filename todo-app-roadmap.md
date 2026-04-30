@@ -30,12 +30,12 @@
 > 重点：搞清楚每个工具是干什么的，不要只是无脑安装。
 
 ```bash
-# 安装 nvm，用它管理 Node 版本（而不是直接装 Node）
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# 安装 nvm（通过 Homebrew）
+brew install nvm
 
-# 使用最新的长期稳定版
-nvm install 24
-nvm use 24
+# 使用最新的长期稳定版（LTS: Krypton）
+nvm install 24.15.0
+nvm use 24.15.0
 
 # 包管理器
 npm install -g pnpm
