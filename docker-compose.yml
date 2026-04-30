@@ -7,6 +7,24 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build: ./server
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - server/.env
+    environment:
+      # 容器间通信用服务名 db，而不是 localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
 volumes:
   pgdata:
