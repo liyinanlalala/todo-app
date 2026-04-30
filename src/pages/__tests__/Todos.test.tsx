@@ -179,4 +179,67 @@ describe("Todos", () => {
     await screen.findByText("还没有任何任务，加一个吧。");
     expect(getAddButton()).toBeDisabled();
   });
+
+  it("添加过程中按钮文案变为「添加中…」且输入框禁用", async () => {
+    let resolveCreate: (value: Todo) => void;
+    vi.mocked(todosApi.createTodo).mockImplementation(
+      () => new Promise((resolve) => { resolveCreate = resolve; }),
+    );
+    const { user } = setup();
+    await screen.findByText("还没有任何任务，加一个吧。");
+
+    await user.type(screen.getByLabelText("新 todo 内容"), "买牛奶");
+    await user.click(getAddButton());
+
+    await waitFor(() => {
+      expect(screen.getByText("添加中…")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("新 todo 内容")).toBeDisabled();
+
+    resolveCreate!({ id: 2, title: "买牛奶", completed: false, createdAt: new Date().toISOString() });
+  });
+
+  it("已完成的 todo 再次点击 checkbox 恢复为未完成", async () => {
+    const completedTodo: Todo = { ...mockTodo, completed: true };
+    vi.mocked(todosApi.listTodos)
+      .mockResolvedValueOnce([completedTodo])
+      .mockResolvedValue([{ ...mockTodo, completed: false }]);
+
+    const { user } = setup();
+    const checkbox = await screen.findByRole("checkbox");
+    expect(checkbox).toBeChecked();
+
+    await user.click(checkbox);
+
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox")).not.toBeChecked();
+    });
+    expect(todosApi.updateTodo).toHaveBeenCalledWith(1, { completed: false });
+  });
+
+  it("纯空格输入添加按钮禁用", async () => {
+    const { user } = setup();
+    await screen.findByText("还没有任何任务，加一个吧。");
+    await user.type(screen.getByLabelText("新 todo 内容"), "   ");
+    expect(getAddButton()).toBeDisabled();
+  });
+
+  it("已完成的 todo 文本显示删除线样式", async () => {
+    const completedTodo: Todo = { ...mockTodo, completed: true };
+    vi.mocked(todosApi.listTodos).mockResolvedValue([completedTodo]);
+    setup();
+    const text = await screen.findByText("测试任务");
+    expect(text.tagName).toBe("DEL");
+  });
+
+  it("多个 todo 中部分完成时剩余计数仅统计未完成项", async () => {
+    vi.mocked(todosApi.listTodos).mockResolvedValue([
+      { id: 1, title: "任务一", completed: false, createdAt: "2026-01-01T00:00:00.000Z" },
+      { id: 2, title: "任务二", completed: true, createdAt: "2026-01-02T00:00:00.000Z" },
+      { id: 3, title: "任务三", completed: false, createdAt: "2026-01-03T00:00:00.000Z" },
+    ]);
+    setup();
+    await screen.findByText("任务一");
+    expect(screen.getByText("剩余 2 项")).toBeInTheDocument();
+  });
 });

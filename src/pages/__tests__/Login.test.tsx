@@ -69,6 +69,40 @@ describe("Login", () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
+  it("输入无效邮箱格式显示错误", async () => {
+    const { user } = setup();
+    await user.type(getInput("邮箱"), "invalid-email");
+    await user.type(getInput("密码"), "123456");
+    await user.click(getSubmitButton());
+    expect(
+      await screen.findByText("请输入有效的邮箱地址"),
+    ).toBeInTheDocument();
+  });
+
+  it("先触发登录错误，再输入正确信息提交后错误消失", async () => {
+    vi.mocked(authApi.login)
+      .mockRejectedValueOnce(new Error("邮箱或密码错误"))
+      .mockResolvedValueOnce({ message: "登录成功" });
+    const { user, onSuccess } = setup();
+    await user.type(getInput("邮箱"), "test@test.com");
+    await user.type(getInput("密码"), "123456");
+    await user.click(getSubmitButton());
+    expect(await screen.findByText("邮箱或密码错误")).toBeInTheDocument();
+
+    await user.click(getSubmitButton());
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledOnce();
+    });
+    expect(screen.queryByText("邮箱或密码错误")).not.toBeInTheDocument();
+  });
+
+  it("邮箱为空提交显示错误", async () => {
+    const { user } = setup();
+    await user.type(getInput("密码"), "123456");
+    await user.click(getSubmitButton());
+    expect(await screen.findByText("请输入邮箱")).toBeInTheDocument();
+  });
+
   it('点击"去注册"调用 onSwitchToRegister', async () => {
     const { user, onSwitchToRegister } = setup();
     await user.click(screen.getByText("去注册"));

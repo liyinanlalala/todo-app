@@ -77,3 +77,17 @@ describe('checkAuth', () => {
     await expect(checkAuth()).rejects.toThrow('未登录')
   })
 })
+
+describe('错误处理边界', () => {
+  it('响应体无 error 字段时使用默认错误信息「请求失败」', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({}), { status: 500 }),
+    )
+    await expect(login('a@b.com', '123456')).rejects.toThrow('请求失败')
+  })
+
+  it('网络异常时错误向上传播', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+    await expect(login('a@b.com', '123456')).rejects.toThrow('Failed to fetch')
+  })
+})

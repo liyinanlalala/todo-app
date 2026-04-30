@@ -128,4 +128,45 @@ describe('POST /auth/logout', () => {
     const res = await request(app).post('/auth/logout')
     expect(res.status).toBe(200)
   })
+
+  it('响应体包含 { message: "已退出登录" }', async () => {
+    const res = await request(app).post('/auth/logout')
+    expect(res.body).toEqual({ message: '已退出登录' })
+  })
+})
+
+describe('响应体与细节', () => {
+  it('register 响应体包含 { message: "注册成功" }', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.user.create).mockResolvedValue(mockUser)
+    const res = await request(app).post('/auth/register').send({ email: 'a@b.com', password: '123456' })
+    expect(res.body).toEqual({ message: '注册成功' })
+  })
+
+  it('register 使用 bcrypt 加密密码', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.user.create).mockResolvedValue(mockUser)
+    await request(app).post('/auth/register').send({ email: 'a@b.com', password: '123456' })
+    expect(bcrypt.hash).toHaveBeenCalledWith('123456', 10)
+  })
+
+  it('login 响应体包含 { message: "登录成功" }', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser)
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never)
+    const res = await request(app).post('/auth/login').send({ email: 'a@b.com', password: '123456' })
+    expect(res.body).toEqual({ message: '登录成功' })
+  })
+
+  it('login 用户不存在返回「邮箱或密码错误」', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+    const res = await request(app).post('/auth/login').send({ email: 'a@b.com', password: '123456' })
+    expect(res.body).toEqual({ error: '邮箱或密码错误' })
+  })
+
+  it('login 密码错误返回「邮箱或密码错误」', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser)
+    vi.mocked(bcrypt.compare).mockResolvedValue(false as never)
+    const res = await request(app).post('/auth/login').send({ email: 'a@b.com', password: 'wrong' })
+    expect(res.body).toEqual({ error: '邮箱或密码错误' })
+  })
 })

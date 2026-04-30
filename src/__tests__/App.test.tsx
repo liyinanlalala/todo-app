@@ -126,6 +126,25 @@ describe("App", () => {
     });
   });
 
+  it("检查登录态期间显示加载动画", async () => {
+    let resolveAuth: (value: { id: number; email: string }) => void;
+    vi.mocked(authApi.checkAuth).mockImplementation(
+      () => new Promise((resolve) => { resolveAuth = resolve; }),
+    );
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <App />
+      </QueryClientProvider>,
+    );
+    expect(container.querySelector(".ant-spin")).toBeInTheDocument();
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+
+    resolveAuth!({ id: 1, email: "test@test.com" });
+    expect(
+      await screen.findByRole("heading", { name: "Todos" }),
+    ).toBeInTheDocument();
+  });
+
   it("退出登录回到登录页", async () => {
     const { user } = setup();
     await screen.findByRole("heading", { name: "登录" });

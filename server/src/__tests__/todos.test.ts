@@ -132,4 +132,36 @@ describe('DELETE /todos/:id', () => {
     const res = await request(app).delete('/todos/999').set('Cookie', AUTH_COOKIE)
     expect(res.status).toBe(404)
   })
+
+  it('204 — 无响应体', async () => {
+    vi.mocked(prisma.todo.delete).mockResolvedValue(mockTodo)
+    const res = await request(app).delete('/todos/1').set('Cookie', AUTH_COOKIE)
+    expect(res.text).toBe('')
+  })
+})
+
+describe('边界与细节', () => {
+  it('GET /todos — 无数据返回空数组', async () => {
+    vi.mocked(prisma.todo.findMany).mockResolvedValue([])
+    const res = await request(app).get('/todos').set('Cookie', AUTH_COOKIE)
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual([])
+  })
+
+  it('POST /todos — title 自动 trim', async () => {
+    vi.mocked(prisma.todo.create).mockResolvedValue({
+      id: 2, title: 'hello', completed: false, userId: 1, createdAt: new Date(),
+    })
+    const res = await request(app).post('/todos').set('Cookie', AUTH_COOKIE).send({ title: '  hello  ' })
+    expect(res.status).toBe(201)
+    // 验证传给 prisma 的 title 已经被 trim
+    const createCall = vi.mocked(prisma.todo.create).mock.calls[0]![0]
+    expect((createCall as { data: { title: string } }).data.title).toBe('hello')
+  })
+
+  it('PATCH /todos/:id — completed 非布尔值返回错误信息', async () => {
+    const res = await request(app).patch('/todos/1').set('Cookie', AUTH_COOKIE).send({ completed: 'yes' })
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ error: 'completed 必须为布尔值' })
+  })
 })
